@@ -5,7 +5,7 @@ const userImageModel = require("../models/userImageModel");
 
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
+const fs = require("fs").promises;
 const { promisify } = require("util");
 const writeFileAsync = promisify(fs.writeFile);
 
@@ -54,31 +54,54 @@ class designController {
   };
 
   create_user_design = async (req, res) => {
-    const form = formidable({});
+    const form = formidable({
+      uploadDir: "./uploads",
+      keepExtensions: true,
+    });
     const { _id } = req.userInfo;
 
     try {
       // Parsa il form per ottenere i campi e i file
-      const [fields, files] = await form.parse(req);
-      const { image } = files;
+      form.parse(req, async (err, fields, files) => {
+        if (err) {
+          return res.status(400).json({ message: "Error parsing form data" });
+        }
 
-      // Gestisci l'upload dell'immagine
-      const imagePath = image[0].path; // Percorso del file temporaneo
-      // Esempio di salvataggio dell'immagine sul server
-      const uploadedImagePath = `./uploads/${Date.now()}_${image[0].name}`;
-      await writeFileAsync(uploadedImagePath, fs.readFileSync(imagePath));
+        const { image } = files;
 
-      // Salva il design nel database
-      const design = await designModel.create({
-        user_id: _id,
-        components: [JSON.parse(fields.design[0])],
-        image_url: uploadedImagePath, // Salva il percorso del file sul server
+        // Verifica che i campi necessari siano presenti
+        if (!fields.design || !image) {
+          return res.status(400).json({ message: "Missing fields or image" });
+        }
+
+        const imagePath = image.path; // Percorso del file temporaneo
+        const uploadedImagePath = `./uploads/${Date.now()}_${image.name}`;
+
+        if (imagePath) {
+          if (fs.existsSync(imagePath)) {
+            try {
+              await fs.rename(imagePath, uploadedImagePath);
+            } catch (error) {
+              console.error("Error moving file:", error);
+              return res
+                .status(500)
+                .json({ message: "Error moving uploaded image" });
+            }
+          }
+        }
+
+        const design = await designModel.create({
+          user_id: _id,
+          components: [JSON.parse(fields.design)],
+          image_url: uploadedImagePath,
+        });
+
+        // Rispondi con il design creato
+        return res.status(200).json({ design });
       });
-
-      // Rispondi con il design creato
-      return res.status(200).json({ design });
     } catch (error) {
       // Gestisci gli errori
+      console.error("Error creating design:", error.message);
       return res.status(500).json({ message: error.message });
     }
   };

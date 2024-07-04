@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
-
+const bodyParser = require("body-parser");
 dotenv.config();
 app.use(express.json());
 
@@ -22,6 +22,9 @@ if (process.env.NODE_ENV === "local") {
     })
   );
 }
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use("/api", require("./routes/designRoutes"));
 app.use("/api", require("./routes/authRoutes"));
