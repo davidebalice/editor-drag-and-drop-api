@@ -29,7 +29,7 @@ const upload = multer({
 });
 
 class designController {
-  create_user_design_cloudinary = async (req, res) => {
+  createUserDesignCloudinary = async (req, res) => {
     const form = formidable({});
     const { _id } = req.userInfo;
     try {
@@ -53,7 +53,7 @@ class designController {
     }
   };
 
-  create_user_design = async (req, res) => {
+  createUserDesign = async (req, res) => {
     const form = formidable({
       uploadDir: "./uploads",
       keepExtensions: true,
@@ -106,7 +106,7 @@ class designController {
     }
   };
 
-  get_user_design = async (req, res) => {
+  getUserDesign = async (req, res) => {
     const { design_id } = req.params;
     try {
       const design = await designModel.findById(design_id);
@@ -116,7 +116,7 @@ class designController {
     }
   };
 
-  update_user_design = async (req, res) => {
+  updateUserDesign = async (req, res) => {
     const form = formidable({});
     const { design_id } = req.params;
     try {
@@ -155,7 +155,7 @@ class designController {
   };
   // End Method
 
-  add_user_image = async (req, res) => {
+  addUserImageCloudinary = async (req, res) => {
     const { _id } = req.userInfo;
     const form = formidable({});
 
@@ -179,9 +179,53 @@ class designController {
     }
   };
 
-  // End Method
+  addUserImage = async (req, res) => {
+    const { _id } = req.userInfo;
+    const form = formidable({
+      multiples: true,
+      uploadDir: path.join(__dirname, "../uploads"),
+      keepExtensions: true,
+    });
 
-  get_user_image = async (req, res) => {
+    try {
+      form.parse(req, async (err, fields, files) => {
+        if (err) {
+          console.error("Form parse error:", err);
+          return res.status(500).json({ message: err.message });
+        }
+
+        if (!files.image) {
+          return res.status(400).json({ message: "No image uploaded" });
+        }
+
+        const image = Array.isArray(files.image) ? files.image[0] : files.image;
+        const fileName = path.basename(image.filepath);
+
+        //const oldPath = image.filepath;
+        //const newFileName = `${Date.now()}-${image.originalFilename}`;
+        // const newPath = path.join(__dirname, "../uploads", newFileName);
+
+        //  fs.rename(oldPath, newPath, async (err) => {
+
+        if (err) {
+          console.error("File rename error:", err);
+          return res.status(500).json({ message: err.message });
+        }
+
+        const userImage = await userImageModel.create({
+          user_id: _id,
+          image_url: fileName,
+        });
+
+        return res.status(201).json({ userImage });
+      });
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      return res.status(500).json({ message: error.message });
+    }
+  };
+
+  getUserImage = async (req, res) => {
     const { _id } = req.userInfo;
     try {
       const images = await userImageModel.find({ user_id: new ObjectId(_id) });
@@ -190,9 +234,8 @@ class designController {
       return res.status(500).json({ message: error.message });
     }
   };
-  // End Method
 
-  get_background_image = async (req, res) => {
+  getBackgroundImage = async (req, res) => {
     try {
       const images = await backgroundImageModel.find({});
       return res.status(200).json({ images });
@@ -202,7 +245,7 @@ class designController {
   };
   // End Method
 
-  get_design_image = async (req, res) => {
+  getDesignImage = async (req, res) => {
     try {
       const images = await designImageModel.find({});
       return res.status(200).json({ images });
@@ -212,7 +255,7 @@ class designController {
   };
   // End Method
 
-  get_user_designs = async (req, res) => {
+  getUserDesigns = async (req, res) => {
     const { _id } = req.userInfo;
     try {
       const designs = await designModel
@@ -225,7 +268,7 @@ class designController {
   };
   // End Method
 
-  delete_user_image = async (req, res) => {
+  deleteUserImage = async (req, res) => {
     const { design_id } = req.params;
     try {
       await designModel.findByIdAndDelete(design_id);
@@ -236,7 +279,7 @@ class designController {
   };
   // End Method
 
-  get_templates = async (req, res) => {
+  getTemplates = async (req, res) => {
     try {
       const templates = await templateModel.find({}).sort({ createdAt: -1 });
       return res.status(200).json({ templates });
@@ -246,12 +289,12 @@ class designController {
   };
   // End Method
 
-  add_user_template = async (req, res) => {
-    const { template_id } = req.params;
+  addUserTemplate = async (req, res) => {
+    const { templateId } = req.params;
     const { _id } = req.userInfo;
 
     try {
-      const template = await templateModel.findById(template_id);
+      const template = await templateModel.findById(templateId);
       const design = await designModel.create({
         user_id: _id,
         components: template.components,
@@ -262,7 +305,24 @@ class designController {
       return res.status(500).json({ message: error.message });
     }
   };
-  // End Method
+
+  getUploadedImage = async (req, res) => {
+    const uploadDir = process.env.UPLOADS_DIRECTORY || "./uploads";
+    const { filename } = req.params;
+    const filePath = path.join(uploadDir, filename);
+
+    try {
+      const stats = await fs.stat(filePath);
+      if (!stats.isFile()) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      res.sendFile(filePath);
+    } catch (error) {
+      console.error("Error read file:", error);
+      return res.status(500).json({ message: "Error read file" });
+    }
+  };
 }
 
 module.exports = new designController();
