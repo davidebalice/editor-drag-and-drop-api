@@ -37,4 +37,10 @@ router.get(
   designController.getUploadedImage
 );
 
+router.get(
+  "/uploaded-design/:filename",
+  authImg,
+  designController.getDesignImage
+);
+
 module.exports = router;

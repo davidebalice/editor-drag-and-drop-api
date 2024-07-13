@@ -13,6 +13,29 @@ const designImageModel = require("../models/designImageModel");
 const backgroundImageModel = require("../models/backgroundImageModel");
 const templateModel = require("../models/templateModel");
 
+async function deleteFileIfExists(path) {
+  console.log("path");
+  console.log(path);
+  path = path.normalize();
+  try {
+    await fs.access(path, fs.constants.F_OK);
+
+    await fs.unlink(path);
+
+    console.log(`File ${path} deleted successfully.`);
+  } catch (err) {
+    if (err.code === "ENOENT") {
+      console.log(
+        `Il file ${path} non esiste, quindi non è necessario eliminarlo.`
+      );
+    } else {
+      console.error(
+        `Si è verificato un errore durante l'eliminazione del file: ${err.message}`
+      );
+    }
+  }
+}
+
 const {
   mongo: { ObjectId },
 } = require("mongoose");
@@ -29,64 +52,52 @@ const upload = multer({
 });
 
 class designController {
-  createUserDesignCloudinary = async (req, res) => {
-    const form = formidable({});
-    const { _id } = req.userInfo;
-    try {
-      cloudinary.config({
-        cloud_name: process.env.cloud_name,
-        api_key: process.env.api_key,
-        api_secret: process.env.api_secret,
-      });
-      const [fields, files] = await form.parse(req);
-      const { image } = files;
-      const { url } = await cloudinary.uploader.upload(image[0].filepath);
-
-      const design = await designModel.create({
-        user_id: _id,
-        components: [JSON.parse(fields.design[0])],
-        image_url: url,
-      });
-      return res.status(200).json({ design });
-    } catch (error) {
-      return res.status(500).json({ message: error.message });
-    }
-  };
-
+ 
   createUserDesign = async (req, res) => {
     const form = formidable({
-      uploadDir: "./uploads",
+      uploadDir: "./uploads/design",
       keepExtensions: true,
     });
     const { _id } = req.userInfo;
 
     try {
-      // Parsa il form per ottenere i campi e i file
       form.parse(req, async (err, fields, files) => {
         if (err) {
           return res.status(400).json({ message: "Error parsing form data" });
         }
 
-        const { image } = files;
+        const image = Array.isArray(files.image) ? files.image[0] : files.image;
 
-        // Verifica che i campi necessari siano presenti
         if (!fields.design || !image) {
           return res.status(400).json({ message: "Missing fields or image" });
         }
 
-        const imagePath = image.path; // Percorso del file temporaneo
-        const uploadedImagePath = `./uploads/${Date.now()}_${image.name}`;
+        let fileName = path.basename(image.filepath);
+
+        const fileExtension = path.extname(image.filepath);
+
+        if (!fileName.endsWith(fileExtension)) {
+          fileName += fileExtension;
+        }
+
+        const imagePath = image.filepath;
+        const uploadedImagePath = `${Date.now()}_${fileName}.png`;
 
         if (imagePath) {
-          if (fs.existsSync(imagePath)) {
-            try {
-              await fs.rename(imagePath, uploadedImagePath);
-            } catch (error) {
-              console.error("Error moving file:", error);
-              return res
-                .status(500)
-                .json({ message: "Error moving uploaded image" });
-            }
+          const uploadedPath = path.join(__dirname, "../uploads/design/");
+          console.log(uploadedPath + image.newFilename);
+          console.log(uploadedPath + uploadedImagePath);
+
+          try {
+            await fs.rename(
+              uploadedPath + image.newFilename,
+              uploadedPath + uploadedImagePath
+            );
+          } catch (error) {
+            console.error("Error moving file:", error);
+            return res
+              .status(500)
+              .json({ message: "Error moving uploaded image" });
           }
         }
 
@@ -96,11 +107,9 @@ class designController {
           image_url: uploadedImagePath,
         });
 
-        // Rispondi con il design creato
         return res.status(200).json({ design });
       });
     } catch (error) {
-      // Gestisci gli errori
       console.error("Error creating design:", error.message);
       return res.status(500).json({ message: error.message });
     }
@@ -116,7 +125,7 @@ class designController {
     }
   };
 
-  updateUserDesign = async (req, res) => {
+  updateUserDesignCloudinary = async (req, res) => {
     const form = formidable({});
     const { design_id } = req.params;
     try {
@@ -153,7 +162,139 @@ class designController {
       return res.status(500).json({ message: error.message });
     }
   };
-  // End Method
+
+  updateUserDesign = async (req, res) => {
+    const form = formidable({
+      uploadDir: "./uploads/design",
+      keepExtensions: true,
+    });
+    const { design_id } = req.params;
+
+    try {
+      form.parse(req, async (err, fields, files) => {
+        if (err) {
+          return res.status(400).json({ message: "Error parsing form data" });
+        }
+
+        const components = JSON.parse(fields.design[0]).design;
+
+        const old_design = await designModel.findById(design_id);
+
+        if (old_design) {
+          const image = Array.isArray(files.image)
+            ? files.image[0]
+            : files.image;
+
+          if (!fields.design || !image) {
+            return res.status(400).json({ message: "Missing fields or image" });
+          }
+
+          const splitImage = old_design.image_url.split("/");
+          const imageFile = splitImage[splitImage.length - 1];
+
+          let fileName = path.basename(image.filepath);
+
+          const fileExtension = path.extname(image.filepath);
+
+          if (!fileName.endsWith(fileExtension)) {
+            fileName += fileExtension;
+          }
+
+          const imagePath = image.filepath;
+          const uploadedImagePath = `${Date.now()}_${fileName}.png`;
+          const uploadedPath = path.join(__dirname, "../uploads/design/");
+
+          if (imagePath) {
+            /*
+            console.log(uploadedPath + image.newFilename);
+            console.log(uploadedPath + uploadedImagePath);
+            console.log(old_design.image_url);
+          */
+            const oldImagePath = path.join(
+              __dirname,
+              "../uploads/design/",
+              old_design.image_url
+            );
+
+            await deleteFileIfExists(oldImagePath)
+              .then(() => {
+                fs.promises.unlink(oldImagePath);
+                fs.unlink(oldImagePath);
+              })
+              .catch((err) => {
+                console.error(`Error deleting file: ${err.message}`);
+              });
+
+            /*
+            await fs.stat(oldImagePath, (err, stats) => {
+              if (err) {
+                if (err.code === "ENOENT") {
+                  console.log("Old image file not found, skipping deletion.");
+                } else {
+                  console.error("Error checking old image file:", err);
+                }
+              } else {
+                fs.unlink(oldImagePath, (unlinkErr) => {
+                  if (unlinkErr) {
+                    console.error("Error deleting old image file:", unlinkErr);
+                  } else {
+                    console.log("Old image file deleted successfully");
+                  }
+                });
+              }
+            });*/
+
+            /*
+            fs.promises
+              .stat(oldImagePath)
+              .then(() => {
+                // Il file esiste, procedi con l'eliminazione
+                return fs.promises.unlink(oldImagePath);
+              })
+              .then(() => {
+                console.log(
+                  `Il file ${oldImagePath} è stato eliminato con successo.`
+                );
+              })
+              .catch((err) => {
+                if (err.code === "ENOENT") {
+                  console.log(
+                    `Il file ${oldImagePath} non esiste, quindi non è necessario eliminarlo.`
+                  );
+                } else {
+                  console.error(
+                    `Si è verificato un errore durante l'eliminazione del file: ${err.message}`
+                  );
+                }
+              });
+*/
+            try {
+              await fs.rename(
+                uploadedPath + image.newFilename,
+                uploadedPath + uploadedImagePath
+              );
+            } catch (error) {
+              console.error("Error moving file:", error);
+              return res
+                .status(500)
+                .json({ message: "Error moving uploaded image" });
+            }
+          }
+
+          await designModel.findByIdAndUpdate(design_id, {
+            image_url: uploadedImagePath,
+            components,
+          });
+
+          return res.status(200).json({ message: "Image Save Success" });
+        } else {
+          return res.status(404).json({ message: "Design Not Found" });
+        }
+      });
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
+    }
+  };
 
   addUserImageCloudinary = async (req, res) => {
     const { _id } = req.userInfo;
@@ -308,6 +449,25 @@ class designController {
 
   getUploadedImage = async (req, res) => {
     const uploadDir = process.env.UPLOADS_DIRECTORY || "./uploads";
+    const { filename } = req.params;
+    const filePath = path.join(uploadDir, filename);
+
+    try {
+      const stats = await fs.stat(filePath);
+      if (!stats.isFile()) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      res.sendFile(filePath);
+    } catch (error) {
+      console.error("Error read file:", error);
+      return res.status(500).json({ message: "Error read file" });
+    }
+  };
+
+  getDesignImage = async (req, res) => {
+    const uploadDir =
+      process.env.UPLOADS_DIRECTORY + "/design" || "./uploads/design";
     const { filename } = req.params;
     const filePath = path.join(uploadDir, filename);
 
