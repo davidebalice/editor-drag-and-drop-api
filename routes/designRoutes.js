@@ -31,16 +31,20 @@ router.get(
   designController.addUserTemplate
 );
 
-router.get(
-  "/uploaded-images/:filename",
-  authImg,
-  designController.getUploadedImage
+router.get("/uploaded-images/:filename", authImg, (req, res) =>
+  designController.getImages(req, res, "uploadedImages")
 );
 
-router.get(
-  "/uploaded-design/:filename",
-  authImg,
-  designController.getDesignImage
+router.get("/images/:filename", authImg, (req, res) =>
+  designController.getImages(req, res, "images")
+);
+
+router.get("/backgrounds/:filename", authImg, (req, res) =>
+  designController.getImages(req, res, "background")
+);
+
+router.get("/design-images/:filename", authImg, (req, res) =>
+  designController.getImages(req, res, "design")
 );
 
 module.exports = router;

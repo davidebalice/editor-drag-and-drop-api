@@ -14,8 +14,6 @@ const backgroundImageModel = require("../models/backgroundImageModel");
 const templateModel = require("../models/templateModel");
 
 async function deleteFileIfExists(path) {
-  console.log("path");
-  console.log(path);
   path = path.normalize();
   try {
     await fs.access(path, fs.constants.F_OK);
@@ -52,7 +50,6 @@ const upload = multer({
 });
 
 class designController {
- 
   createUserDesign = async (req, res) => {
     const form = formidable({
       uploadDir: "./uploads/design",
@@ -205,11 +202,6 @@ class designController {
           const uploadedPath = path.join(__dirname, "../uploads/design/");
 
           if (imagePath) {
-            /*
-            console.log(uploadedPath + image.newFilename);
-            console.log(uploadedPath + uploadedImagePath);
-            console.log(old_design.image_url);
-          */
             const oldImagePath = path.join(
               __dirname,
               "../uploads/design/",
@@ -225,49 +217,6 @@ class designController {
                 console.error(`Error deleting file: ${err.message}`);
               });
 
-            /*
-            await fs.stat(oldImagePath, (err, stats) => {
-              if (err) {
-                if (err.code === "ENOENT") {
-                  console.log("Old image file not found, skipping deletion.");
-                } else {
-                  console.error("Error checking old image file:", err);
-                }
-              } else {
-                fs.unlink(oldImagePath, (unlinkErr) => {
-                  if (unlinkErr) {
-                    console.error("Error deleting old image file:", unlinkErr);
-                  } else {
-                    console.log("Old image file deleted successfully");
-                  }
-                });
-              }
-            });*/
-
-            /*
-            fs.promises
-              .stat(oldImagePath)
-              .then(() => {
-                // Il file esiste, procedi con l'eliminazione
-                return fs.promises.unlink(oldImagePath);
-              })
-              .then(() => {
-                console.log(
-                  `Il file ${oldImagePath} è stato eliminato con successo.`
-                );
-              })
-              .catch((err) => {
-                if (err.code === "ENOENT") {
-                  console.log(
-                    `Il file ${oldImagePath} non esiste, quindi non è necessario eliminarlo.`
-                  );
-                } else {
-                  console.error(
-                    `Si è verificato un errore durante l'eliminazione del file: ${err.message}`
-                  );
-                }
-              });
-*/
             try {
               await fs.rename(
                 uploadedPath + image.newFilename,
@@ -447,27 +396,21 @@ class designController {
     }
   };
 
-  getUploadedImage = async (req, res) => {
-    const uploadDir = process.env.UPLOADS_DIRECTORY || "./uploads";
-    const { filename } = req.params;
-    const filePath = path.join(uploadDir, filename);
-
-    try {
-      const stats = await fs.stat(filePath);
-      if (!stats.isFile()) {
-        return res.status(404).json({ message: "File not found" });
-      }
-
-      res.sendFile(filePath);
-    } catch (error) {
-      console.error("Error read file:", error);
-      return res.status(500).json({ message: "Error read file" });
+  getImages = async (req, res, directory) => {
+    let uploadDir = "";
+    if (directory === "uploadedImages") {
+      uploadDir = process.env.UPLOADS_DIRECTORY || "./uploads";
+    } else if (directory === "images") {
+      uploadDir =
+        process.env.UPLOADS_DIRECTORY + "/images" || "./uploads/images";
+    } else if (directory === "background") {
+      uploadDir =
+        process.env.UPLOADS_DIRECTORY + "/background" || "./uploads/background";
+    } else if (directory === "design") {
+      uploadDir =
+        process.env.UPLOADS_DIRECTORY + "/design" || "./uploads/design";
     }
-  };
 
-  getDesignImage = async (req, res) => {
-    const uploadDir =
-      process.env.UPLOADS_DIRECTORY + "/design" || "./uploads/design";
     const { filename } = req.params;
     const filePath = path.join(uploadDir, filename);
 

@@ -1,0 +1,16 @@
+[{
+  "_id": {
+    "$oid": "6686be0e2508bf05d17f85d5"
+  },
+  "name": "mario",
+  "email": "mario@rossi.it",
+  "password": "$2b$09$tJV0lyOvecx/ulHHV2lnUe8xAH/jqfW8EyqDjOcV1D.HQX8yMMuoS",
+  "image": "",
+  "createdAt": {
+    "$date": "2024-07-04T15:21:50.575Z"
+  },
+  "updatedAt": {
+    "$date": "2024-07-04T15:21:50.575Z"
+  },
+  "__v": 0
+}]

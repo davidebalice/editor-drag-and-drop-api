@@ -1,0 +1,32 @@
+[{
+  "_id": {
+    "$oid": "668c13b163c3ba33439bdb95"
+  },
+  "user_id": {
+    "$oid": "6686be0e2508bf05d17f85d5"
+  },
+  "image_url": "aac80bdcb7632a3b69a185500.jpg",
+  "createdAt": {
+    "$date": "2024-07-08T16:28:33.362Z"
+  },
+  "updatedAt": {
+    "$date": "2024-07-08T16:28:33.362Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "668c1a9ec8e5324b931967ac"
+  },
+  "user_id": {
+    "$oid": "6686be0e2508bf05d17f85d5"
+  },
+  "image_url": "1263cc242c3ee810bb3dd2100.jpg",
+  "createdAt": {
+    "$date": "2024-07-08T16:58:06.426Z"
+  },
+  "updatedAt": {
+    "$date": "2024-07-08T16:58:06.426Z"
+  },
+  "__v": 0
+}]
