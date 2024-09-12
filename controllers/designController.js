@@ -53,7 +53,7 @@ class designController {
   createUserDesign = async (req, res) => {
     if (global.demo) {
       res.status(200).json({
-        title: "Demo mode",
+        message: "Demo mode. Save and create are not allowed.",
         status: "demo",
       });
     } else {
@@ -134,7 +134,7 @@ class designController {
   updateUserDesign = async (req, res) => {
     if (global.demo) {
       res.status(200).json({
-        title: "Demo mode",
+        message: "Demo mode. Save and create are not allowed.",
         status: "demo",
       });
     } else {
@@ -228,7 +228,7 @@ class designController {
   addUserImage = async (req, res) => {
     if (global.demo) {
       res.status(200).json({
-        title: "Demo mode",
+        message: "Demo mode. Save and create are not allowed.",
         status: "demo",
       });
     } else {
@@ -326,7 +326,7 @@ class designController {
   deleteUserImage = async (req, res) => {
     if (global.demo) {
       res.status(200).json({
-        title: "Demo mode",
+        message: "Demo mode. Delete are not allowed.",
         status: "demo",
       });
     } else {
@@ -352,7 +352,7 @@ class designController {
   addUserTemplate = async (req, res) => {
     if (global.demo) {
       res.status(200).json({
-        title: "Demo mode",
+        message: "Demo mode. Save and create are not allowed.",
         status: "demo",
       });
     } else {

@@ -8,20 +8,24 @@ const bodyParser = require("body-parser");
 dotenv.config();
 app.use(express.json());
 
-if (process.env.NODE_ENV === "local") {
-  app.use(
-    cors({
-      origin: "http://localhost:3000",
-      credentials: true,
-    })
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const regex = /^https:\/\/(.+\.)?davidebalice\.dev$/;
+  if (regex.test(origin) || /^http:\/\/localhost(:\d{1,5})?$/.test(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
   );
-} else {
-  app.use(
-    cors({
-      credentials: true,
-    })
-  );
-}
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  next();
+});
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
